@@ -47,6 +47,8 @@ class Visualizer():
 		self.images = None
 		self.pause = False
 
+		self.cached_data = edict(id=-1,im=None,gt=None,pred=None)
+
 		# load config
 		with open(config_file, 'r') as handle:
 			x = json.load(handle)
@@ -141,31 +143,73 @@ class Visualizer():
 		self.pause = False
 		self.run = False
 
-	def display(self, im=None, gt=None, pred=None, centers=None):
+	def load_images(self, filename, single_image=False, crop=None):
+		_,ext = os.path.splitext(filename)
+		if ext.lower() in [".npy", ".npz"]:
+			images = np.load(filename)
+			if crop:
+				images = images[:,:crop[0],:crop[1]]
+			return images
+		elif ext.lower() in ['.jpg','.jpeg','.png','.bmp']:
+			images = np.array(cv2.imread(filename))
+			images = images if single_image else [images]
+			if crop:
+				images = [I[x:x+crop[0],y:y+crop[1]] for I in images for x in range(0,I.shape[0],crop[0]) for y in range(0,I.shape[1],crop[1])]
+			return images
+		else:
+			raise Exception("Unknown input format - allowed only .npy/.npz or images")
+
+	def load_centers(self, filename):
+		if os.path.exists(filename):
+			centers = np.load(filename)
+			assert len(centers.shape) == 2 and centers.shape[1] == 2
+		else:
+			centers = np.zeros((0,2))
+		return centers
+
+	def display(self, im=None, gt=None, pred=None, centers=None, title=None):
 
 		if im is None:
 
-			if self.data_dir is None:
-				self.open()
+			if self.cached_data.id == self.im_idx:
+				im = self.cached_data.im
+				gt = self.cached_data.gt
+				pred = self.cached_data.pred
+				centers = self.cached_data.centers
+			else:
+				if self.data_dir is None:
+					self.open()
 
-			if not self.images:
-				print(f"no images found in {self.data_dir}")
-				self.quit()
-				return
+				if not self.images:
+					print(f"no images found in {self.data_dir}")
+					self.quit()
+					return
 
-			im_fn = self.images[self.im_idx]
-			gt_fn = self.GT[self.im_idx]
-			pred_fn = self.pred[self.im_idx]
-			centers_fn = self.centers[self.im_idx]
+				im_fn = self.images[self.im_idx]
+				gt_fn = self.GT[self.im_idx]
+				pred_fn = self.pred[self.im_idx]
+				centers_fn = self.centers[self.im_idx]
 
-			im = np.load(im_fn)
-			gt = np.load(gt_fn)
-			pred = np.load(pred_fn)
-			centers = np.load(centers_fn)
+				im = self.load_images(im_fn, single_image=True)
 
-			im = np.swapaxes(im, 0, 2)
-			im = np.swapaxes(im, 0, 1)
-			im = (im*255).astype(np.uint8)
+				if im.shape[-1] not in [1,3]:
+					im = np.swapaxes(im, 0, 2)
+					im = np.swapaxes(im, 0, 1)
+				if im.dtype != np.uint8:
+					im = (im*255).astype(np.uint8)
+
+				gt = self.load_images(gt_fn, crop=im.shape[:2])
+				pred = self.load_images(pred_fn, crop=im.shape[:2])
+				centers = self.load_centers(centers_fn)
+
+				self.cached_data.id = self.im_idx
+				self.cached_data.im = im
+				self.cached_data.gt = gt
+				self.cached_data.pred = pred
+				self.cached_data.centers = centers
+
+			if title is None:
+				title = os.path.basename(self.images[self.im_idx])
 
 		while True:
 
@@ -188,8 +232,11 @@ class Visualizer():
 			# print(gt_img.shape, im.dtype)
 			# print(overlay.shape, im.dtype)
 
-			overlay = cv2.applyColorMap(overlay, cv2.COLORMAP_PLASMA) # colormap
-			gt_img = cv2.applyColorMap(gt_img, cv2.COLORMAP_PLASMA)
+			if len(overlay.shape) == 2:
+				overlay = cv2.applyColorMap(overlay, cv2.COLORMAP_PLASMA) # colormap
+
+			if len(gt_img.shape) == 2:
+				gt_img = cv2.applyColorMap(gt_img, cv2.COLORMAP_PLASMA)
 
 			if self.show_overlay:
 				dst = cv2.addWeighted(im, self.config.alpha, overlay, 1-self.config.alpha, 0.0)
@@ -215,6 +262,9 @@ class Visualizer():
 				final = draw_text(final, text=f'{self.im_idx+1}/{len(self.images)}', pos=c_pos)
 
 			cv2.imshow(self.config.window_name, final)
+
+			if title is not None:
+				cv2.setWindowTitle(self.config.window_name, title)
 
 			cv2.waitKey(1)
 
