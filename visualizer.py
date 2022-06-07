@@ -39,8 +39,8 @@ class Visualizer():
 
 		self.data_dir = data_dir
 		self.im_idx = 0
-		self.overlay_idx = 0
-		self.gt_idx = 0
+		self.left_idx = 0
+		self.right_idx = 0
 		self.show_centers = False
 		self.show_overlay = True
 		self.run = True
@@ -114,10 +114,10 @@ class Visualizer():
 			self.pause = not self.pause
 
 	def increment_gt(self):
-		self.gt_idx = min(self.gt_idx + 1, self.len_left - 1)
+		self.right_idx = min(self.right_idx + 1, self.len_left - 1)
 
 	def decrement_gt(self):
-		self.gt_idx = max(self.gt_idx-1,0)
+		self.right_idx = max(self.right_idx - 1, 0)
 
 	def increment_idx(self):
 		if self.data_dir is not None:
@@ -128,10 +128,10 @@ class Visualizer():
 			self.im_idx = max(self.im_idx-1,0)
 
 	def increment_pred(self):
-		self.overlay_idx = min(self.overlay_idx + 1, self.len_right - 1)
+		self.left_idx = min(self.left_idx + 1, self.len_right - 1)
 
 	def decrement_pred(self):
-		self.overlay_idx = max(self.overlay_idx-1,0)
+		self.left_idx = max(self.left_idx - 1, 0)
 
 	def change_alpha(self, dx):
 		self.config.alpha=max(min(self.config.alpha+dx,1),0)
@@ -147,21 +147,25 @@ class Visualizer():
 		self.run = False
 
 	def load_images(self, filename, single_image=False, crop=None):
-		_,ext = os.path.splitext(filename)
-		if ext.lower() in [".npy", ".npz"]:
-			images = np.load(filename)
-			if crop:
-				images = images[:,:crop[0],:crop[1]]
-			return images
-		elif ext.lower() in ['.jpg','.jpeg','.png','.bmp']:
-			images = np.array(cv2.imread(filename))
-			images = images if single_image else [images]
-			if crop:
-				images = [I[x:x+crop[0],y:y+crop[1]] for I in images for x in range(0,I.shape[0],crop[0]) for y in range(0,I.shape[1],crop[1])]
-			return images
-		else:
-			raise Exception("Unknown input format - allowed only .npy/.npz or images")
+		if type(filename) not in [tuple, list]:
+			filename = [filename]
+		images = []
+		for f in filename:
+			_,ext = os.path.splitext(f)
+			if ext.lower() in [".npy", ".npz"]:
+				if single_image:
+					images.append(np.load(f))
+				else:
+					images.extend([I for I in np.load(f)]) # split channel into individual images
+			elif ext.lower() in ['.jpg','.jpeg','.png','.bmp']:
+				images.append(np.array(cv2.imread(f))) #[ add as one image
+			else:
+				raise Exception("Unknown input format - allowed only .npy/.npz or images")
 
+		if crop:
+			images = [I[x:x + crop[0], y:y + crop[1]] for I in images for x in range(0, I.shape[0], crop[0]) for y in range(0, I.shape[1], crop[1])]
+
+		return images[0] if single_image else images
 	def load_centers(self, filename):
 		if os.path.exists(filename):
 			centers = np.load(filename)
@@ -225,8 +229,8 @@ class Visualizer():
 			self.len_left = len(left_overlays)
 			self.len_right = len(right_overlays)
 
-			L = right_overlays[self.overlay_idx]
-			R = left_overlays[self.gt_idx]
+			L = right_overlays[self.left_idx]
+			R = left_overlays[self.right_idx]
 
 			# normalize input
 			if L.dtype!=np.uint8:
@@ -246,12 +250,12 @@ class Visualizer():
 
 			if self.show_overlay:
 				R_pane = cv2.addWeighted(im, self.config.alpha, L, 1-self.config.alpha, 0.0)
-				R_pane = draw_text(R_pane, text=f'{self.right_title} {self.overlay_idx+1}/{len(right_overlays)}')
+				R_pane = draw_text(R_pane, text=f'{self.right_title} {self.left_idx + 1}/{len(right_overlays)}')
 			else:
 				R_pane = im.copy()
 
 			L_pane = cv2.addWeighted(im, self.config.alpha, R, 1-self.config.alpha, 0.0)
-			L_pane = draw_text(L_pane, text=f'{self.left_title} {self.gt_idx+1}/{len(left_overlays)}')
+			L_pane = draw_text(L_pane, text=f'{self.left_title} {self.right_idx + 1}/{len(left_overlays)}')
 
 			if self.show_centers and centers is not None:
 				for j,i in centers:
