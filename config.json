@@ -8,6 +8,10 @@
         0,
         255
     ],
+    "panel_title": {
+        "left": "GT",
+        "right": "pred"
+    },
     "file_patterns": {
         "image": "img.npy",
         "left_pane": "GT.npy",

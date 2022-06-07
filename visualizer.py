@@ -47,12 +47,15 @@ class Visualizer():
 		self.images = None
 		self.pause = False
 
-		self.cached_data = edict(id=-1,im=None,gt=None,pred=None)
+		self.cached_data = edict(id=-1,im=None,left=None,right=None,centers=None)
 
 		# load config
 		with open(config_file, 'r') as handle:
 			x = json.load(handle)
 			self.config = edict(x)
+
+		self.left_title = self.config.panel_title.left if 'panel_title' in self.config and 'left' in self.config.panel_title else ''
+		self.right_title = self.config.panel_title.right if 'panel_title' in self.config and 'right' in self.config.panel_title else ''
 
 		# create window
 		cv2.namedWindow(self.config.window_name, cv2.WINDOW_NORMAL)
@@ -68,13 +71,13 @@ class Visualizer():
 		self.data_dir = dir
 
 		IMG_PATTERN = self.config.file_patterns.image if "file_patterns" in self.config and "image" in self.config.file_patterns else "img.npy"
-		GT_PATTERN = self.config.file_patterns.left_pane if "file_patterns" in self.config and "left_pane" in self.config.file_patterns else "GT.npy"
-		PRED_PATTERN = self.config.file_patterns.right_pane if "file_patterns" in self.config and "right_pane" in self.config.file_patterns else "pred.npy"
+		LEFT_PATTERN = self.config.file_patterns.left_pane if "file_patterns" in self.config and "left_pane" in self.config.file_patterns else "GT.npy"
+		RIGHT_PATTERN = self.config.file_patterns.right_pane if "file_patterns" in self.config and "right_pane" in self.config.file_patterns else "pred.npy"
 		CENTERS_PATTERN = self.config.file_patterns.centers if "file_patterns" in self.config and "centers" in self.config.file_patterns else "centers.npy"
 
 		self.images = sorted(glob(os.path.join(self.data_dir,"*" + IMG_PATTERN)))
-		self.GT = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,GT_PATTERN)) for x in self.images]
-		self.pred = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,PRED_PATTERN)) for x in self.images]
+		self.left_imgs = [os.path.join(self.data_dir, x.replace(IMG_PATTERN, LEFT_PATTERN)) for x in self.images]
+		self.right_imgs = [os.path.join(self.data_dir, x.replace(IMG_PATTERN, RIGHT_PATTERN)) for x in self.images]
 		self.centers = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,CENTERS_PATTERN)) for x in self.images]
 
 	def on_press(self, key):
@@ -111,7 +114,7 @@ class Visualizer():
 			self.pause = not self.pause
 
 	def increment_gt(self):
-		self.gt_idx = min(self.gt_idx+1,self.len_gt-1)
+		self.gt_idx = min(self.gt_idx + 1, self.len_left - 1)
 
 	def decrement_gt(self):
 		self.gt_idx = max(self.gt_idx-1,0)
@@ -125,7 +128,7 @@ class Visualizer():
 			self.im_idx = max(self.im_idx-1,0)
 
 	def increment_pred(self):
-		self.overlay_idx = min(self.overlay_idx+1,self.len_pred-1)
+		self.overlay_idx = min(self.overlay_idx + 1, self.len_right - 1)
 
 	def decrement_pred(self):
 		self.overlay_idx = max(self.overlay_idx-1,0)
@@ -167,14 +170,17 @@ class Visualizer():
 			centers = np.zeros((0,2))
 		return centers
 
-	def display(self, im=None, gt=None, pred=None, centers=None, title=None):
+	def display(self, im=None, gt=None, pred=None, left=None, right=None, centers=None, title=None):
+		# legacy support
+		left = left if left is not None else gt
+		right = right if right is not None else pred
 
 		if im is None:
 
 			if self.cached_data.id == self.im_idx:
 				im = self.cached_data.im
-				gt = self.cached_data.gt
-				pred = self.cached_data.pred
+				left = self.cached_data.left
+				right = self.cached_data.right
 				centers = self.cached_data.centers
 			else:
 				if self.data_dir is None:
@@ -186,8 +192,8 @@ class Visualizer():
 					return
 
 				im_fn = self.images[self.im_idx]
-				gt_fn = self.GT[self.im_idx]
-				pred_fn = self.pred[self.im_idx]
+				left_fn = self.left_imgs[self.im_idx]
+				right_fn = self.right_imgs[self.im_idx]
 				centers_fn = self.centers[self.im_idx]
 
 				im = self.load_images(im_fn, single_image=True)
@@ -198,14 +204,14 @@ class Visualizer():
 				if im.dtype != np.uint8:
 					im = (im*255).astype(np.uint8)
 
-				gt = self.load_images(gt_fn, crop=im.shape[:2])
-				pred = self.load_images(pred_fn, crop=im.shape[:2])
+				left = self.load_images(left_fn, crop=im.shape[:2])
+				right = self.load_images(right_fn, crop=im.shape[:2])
 				centers = self.load_centers(centers_fn)
 
 				self.cached_data.id = self.im_idx
 				self.cached_data.im = im
-				self.cached_data.gt = gt
-				self.cached_data.pred = pred
+				self.cached_data.left = left
+				self.cached_data.right = right
 				self.cached_data.centers = centers
 
 			if title is None:
@@ -213,48 +219,48 @@ class Visualizer():
 
 		while True:
 
-			gts = [x for x in gt]
-			overlays = [x for x in pred]
+			left_overlays = [x for x in left]
+			right_overlays = [x for x in right]
 
-			self.len_gt = len(gts)
-			self.len_pred = len(overlays)
+			self.len_left = len(left_overlays)
+			self.len_right = len(right_overlays)
 
-			overlay = overlays[self.overlay_idx]
-			gt_img = gts[self.gt_idx]
+			L = right_overlays[self.overlay_idx]
+			R = left_overlays[self.gt_idx]
 
 			# normalize input
-			if overlay.dtype!=np.uint8:
-				overlay = normalize(overlay)
-			if gt_img.dtype!=np.uint8:
-				gt_img = normalize(gt_img)
+			if L.dtype!=np.uint8:
+				L = normalize(L)
+			if R.dtype!=np.uint8:
+				R = normalize(R)
 
 			# print(im.shape, im.dtype)
-			# print(gt_img.shape, im.dtype)
-			# print(overlay.shape, im.dtype)
+			# print(L.shape, im.dtype)
+			# print(R.shape, im.dtype)
 
-			if len(overlay.shape) == 2:
-				overlay = cv2.applyColorMap(overlay, cv2.COLORMAP_PLASMA) # colormap
+			if len(L.shape) == 2:
+				L = cv2.applyColorMap(L, cv2.COLORMAP_PLASMA) # colormap
 
-			if len(gt_img.shape) == 2:
-				gt_img = cv2.applyColorMap(gt_img, cv2.COLORMAP_PLASMA)
+			if len(R.shape) == 2:
+				R = cv2.applyColorMap(R, cv2.COLORMAP_PLASMA)
 
 			if self.show_overlay:
-				dst = cv2.addWeighted(im, self.config.alpha, overlay, 1-self.config.alpha, 0.0)
-				dst = draw_text(dst, text=f'pred {self.overlay_idx+1}/{len(overlays)}')
+				R_pane = cv2.addWeighted(im, self.config.alpha, L, 1-self.config.alpha, 0.0)
+				R_pane = draw_text(R_pane, text=f'{self.right_title} {self.overlay_idx+1}/{len(right_overlays)}')
 			else:
-				dst = im.copy()
+				R_pane = im.copy()
 
-			gt_pred = cv2.addWeighted(im, self.config.alpha, gt_img, 1-self.config.alpha, 0.0)
-			gt_pred = draw_text(gt_pred, text=f'GT {self.gt_idx+1}/{len(gts)}')
+			L_pane = cv2.addWeighted(im, self.config.alpha, R, 1-self.config.alpha, 0.0)
+			L_pane = draw_text(L_pane, text=f'{self.left_title} {self.gt_idx+1}/{len(left_overlays)}')
 
 			if self.show_centers and centers is not None:
 				for j,i in centers:
 					j = int(j)
 					i = int(i)
-					dst = cv2.circle(dst, (i,j), self.config.center_size, self.config.center_color, -1)
-					gt_pred = cv2.circle(gt_pred, (i,j), self.config.center_size, self.config.center_color, -1)
+					R_pane = cv2.circle(R_pane, (i,j), self.config.center_size, self.config.center_color, -1)
+					L_pane = cv2.circle(L_pane, (i,j), self.config.center_size, self.config.center_color, -1)
 
-			final = np.hstack((gt_pred, dst))
+			final = np.hstack((L_pane, R_pane))
 
 			if self.data_dir is not None:
 				# image counter position
