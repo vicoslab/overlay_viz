@@ -6,6 +6,7 @@ from glob import glob
 # import promptlib
 from tkinter import Tk
 from tkinter.filedialog import askdirectory, askopenfilename, asksaveasfile
+import os
 
 default_config = edict()
 
@@ -64,10 +65,15 @@ class Visualizer():
 		dir = askdirectory(title='Select Folder', initialdir=initial_directory) # shows dialog box and return the dir
 		self.data_dir = dir
 
-		self.images = sorted(glob(f"{self.data_dir}/*img.npy"))
-		self.GT = [f"{self.data_dir}/{i}_GT.npy" for i,x in enumerate(self.images)]
-		self.pred = [f"{self.data_dir}/{i}_pred.npy" for i,x in enumerate(self.images)]
-		self.centers = [f"{self.data_dir}/{i}_centers.npy" for i,x in enumerate(self.images)]
+		IMG_PATTERN = self.config.file_patterns.image if "file_patterns" in self.config and "image" in self.config.file_patterns else "img.npy"
+		GT_PATTERN = self.config.file_patterns.left_pane if "file_patterns" in self.config and "left_pane" in self.config.file_patterns else "GT.npy"
+		PRED_PATTERN = self.config.file_patterns.right_pane if "file_patterns" in self.config and "right_pane" in self.config.file_patterns else "pred.npy"
+		CENTERS_PATTERN = self.config.file_patterns.centers if "file_patterns" in self.config and "centers" in self.config.file_patterns else "centers.npy"
+
+		self.images = sorted(glob(os.path.join(self.data_dir,"*" + IMG_PATTERN)))
+		self.GT = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,GT_PATTERN)) for x in self.images]
+		self.pred = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,PRED_PATTERN)) for x in self.images]
+		self.centers = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,CENTERS_PATTERN)) for x in self.images]
 
 	def on_press(self, key):
 		try:

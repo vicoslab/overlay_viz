@@ -7,5 +7,11 @@
         0,
         0,
         255
-    ]
+    ],
+    "file_patterns": {
+        "image": "img.npy",
+        "left_pane": "GT.npy",
+        "right_pane": "pred.npy",
+        "centers": "centers.npy"
+    }
 }
