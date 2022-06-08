@@ -10,7 +10,7 @@ A tool/class for double-panel visualization (left/right) of multiple overlays di
  - user configurable (define main image filename suffix and suffix for left/right overlay filename)
 
 
-##### Installation and dependencies:
+### Installation and dependencies:
 
 Install as pip package:
 ```bash
@@ -22,7 +22,7 @@ Dependencies:
  * NumPy >= 1.15.0
  * Python OpenCV >= 4.5
 
-##### Usage:
+### Usage:
 
 - Executable as a viewer for pre-generated results (saved as .npy files) 
   ```bash  
@@ -41,7 +41,7 @@ Dependencies:
   
 - Class-based usage for a versatile way of viewing the predictions during learning (aka live view) - see `demo/demo.py
 
-##### Config:
+### Config:
 Configuration is loaded from the provided `config.json` where you can define:
  - which filename suffix is used for image
  - which filename suffix (one or more) will be used for left and right panel overlays
@@ -69,7 +69,7 @@ Default configuration is:
 }
 ```
 
-##### Input formats:
+### Input formats:
 Pre-generated data for visualization can be NumPy arrays (.npy) or images (jpeg/png).
 
 Expected NumPy data should be in the following format:
@@ -81,7 +81,7 @@ Expected NumPy data should be in the following format:
 All data must have the same corresponding size (h x w). Data that is stacked in 2D-grid image will be split into 
 multiple patches for display as different channels, each with the same size as the input image.
 
-##### Hotkeys:
+### Hotkeys:
     'w/s' - switch left overlay channel index
     'up/down' - switch right overlay channel index
     'left/right' - previous/next image
@@ -92,7 +92,7 @@ multiple patches for display as different channels, each with the same size as t
     'o' - select directory
     'q' - quit
 
-##### Example data:
+### Example data:
 Download example data from https://unilj-my.sharepoint.com/:f:/g/personal/jmuhovic_fe1_uni-lj_si/Emsoh0lHX-RGpEAEXJaA7ZwBRvxHkHThyE7Hfir95bSr7A?e=sl0aWp
 and run:
 
