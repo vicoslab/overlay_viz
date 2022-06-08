@@ -13,9 +13,9 @@
         "right": "pred"
     },
     "file_patterns": {
-        "image": "img.npy",
-        "left_pane": "GT.npy",
-        "right_pane": "pred.npy",
+        "image": "0.img.png",
+        "left_pane": ["GT.npy"],
+        "right_pane": ["pred.npy"],
         "centers": "centers.npy"
     }
 }
