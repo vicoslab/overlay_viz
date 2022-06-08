@@ -26,7 +26,7 @@ Dependencies:
 
 - Executable as a viewer for pre-generated results (saved as .npy files) 
   ```bash  
-  overlay_viz --cfg demo/config.json] --dir <data_folder>
+  overlay_viz --cfg demo/config.json --dir <data_folder>
   ```
   ```code
   usage: overlay_viz [-h] [--cfg CONFIG_JSON] [--dir DIR]
@@ -39,14 +39,14 @@ Dependencies:
     --dir D     main folder with images (will ask for folder confirmation)
   ```
   
-- Class-based usage for a versatile way of viewing the predictions during learning (aka live view) - see `demo/demo.py
+- Class-based usage for a versatile way of viewing the predictions during learning (aka live view) - see [`demo.py`](demo/demo.py)
 
 ### Config:
 Configuration is loaded from the provided `config.json` where you can define:
- - which filename suffix is used for image
+ - which filename suffix is used for main image
  - which filename suffix (one or more) will be used for left and right panel overlays
  - title of left/right panel
- - background colors, loaded center points size, default blending factor, etc
+ - background colors, loaded center points size, default blending factor, etc.
 
 Default configuration is:
 ```json
@@ -79,7 +79,7 @@ Expected NumPy data should be in the following format:
     - object centers (n x 2)
   
 All data must have the same corresponding size (h x w). Data that is stacked in 2D-grid image will be split into 
-multiple patches for display as different channels, each with the same size as the input image.
+multiple patches for display in different channels, each with the same size as the input image.
 
 ### Hotkeys:
     'w/s' - switch left overlay channel index
