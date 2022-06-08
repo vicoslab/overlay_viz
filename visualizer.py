@@ -75,9 +75,14 @@ class Visualizer():
 		RIGHT_PATTERN = self.config.file_patterns.right_pane if "file_patterns" in self.config and "right_pane" in self.config.file_patterns else "pred.npy"
 		CENTERS_PATTERN = self.config.file_patterns.centers if "file_patterns" in self.config and "centers" in self.config.file_patterns else "centers.npy"
 
+		if type(LEFT_PATTERN) not in [tuple,list]:
+			LEFT_PATTERN = [LEFT_PATTERN]
+		if type(RIGHT_PATTERN) not in [tuple,list]:
+			RIGHT_PATTERN = [RIGHT_PATTERN]
+
 		self.images = sorted(glob(os.path.join(self.data_dir,"*" + IMG_PATTERN)))
-		self.left_imgs = [os.path.join(self.data_dir, x.replace(IMG_PATTERN, LEFT_PATTERN)) for x in self.images]
-		self.right_imgs = [os.path.join(self.data_dir, x.replace(IMG_PATTERN, RIGHT_PATTERN)) for x in self.images]
+		self.left_imgs = [[os.path.join(self.data_dir, x.replace(IMG_PATTERN, p)) for p in LEFT_PATTERN] for x in self.images]
+		self.right_imgs = [[os.path.join(self.data_dir, x.replace(IMG_PATTERN, p)) for p in RIGHT_PATTERN] for x in self.images]
 		self.centers = [os.path.join(self.data_dir, x.replace(IMG_PATTERN,CENTERS_PATTERN)) for x in self.images]
 
 	def on_press(self, key):
