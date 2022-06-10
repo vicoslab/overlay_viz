@@ -1,0 +1,21 @@
+{
+    "dx": 0.1,
+    "alpha": 0.5,
+    "window_name": "image",
+    "center_size": 2,
+    "center_color": [
+        0,
+        0,
+        255
+    ],
+    "panel_title": {
+        "left": "GT",
+        "right": "pred"
+    },
+    "file_patterns": {
+        "image": "0.img.png",
+        "left_pane": ["GT.npy"],
+        "right_pane": ["pred.npy"],
+        "centers": "centers.npy"
+    }
+}

@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+import argparse, sys
+from overlay_viz import Visualizer
+
+def main(args):
+    v = Visualizer(data_dir=None, config_file=args.cfg)
+    v.open(args.dir)
+
+    while v.run:
+        v.display()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Overlay visualization tool.')
+
+    parser.add_argument('--cfg', metavar='C', type=str, default=None, help='config filename/path')
+    parser.add_argument('--dir', metavar='D', type=str, default=None, help='main folder with images (will ask for folder confirmation)')
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    return parser.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)
