@@ -14,7 +14,7 @@ A tool/class for double-panel visualization (left/right) of multiple overlays di
 
 Install as pip package:
 ```bash
-pip install git+https://github.com/vicoslab/dl_visualizer.git
+pip install git+https://github.com/vicoslab/overlay_viz.git
 ```
 
 Dependencies:
